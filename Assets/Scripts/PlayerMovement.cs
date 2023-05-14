@@ -63,9 +63,9 @@ public class PlayerMovement : MonoBehaviour
     //Following 2 coroutines would not work for movement on the y vector
 
     //Finishes movement in multiple 90 degree turns
-    IEnumerator StepToDestination(Vector3 destintion)
+    IEnumerator StepToDestination(Vector3 destintion, float stepSize = 1)
     {
-        Vector3 movementDirection = (destintion - transform.position).normalized;
+        Vector3 movementDirection = (destintion - transform.position).normalized * stepSize;
         bool isFinishedMoving = false;
         Vector3 rotationDirection = movementDirection * 90;
         rotationDirection = new Vector3(rotationDirection.z, rotationDirection.y, -rotationDirection.x);
