@@ -1,14 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class FaceBehavior : MonoBehaviour
 {
-    [SerializeField]
-    private SpriteRenderer _faceSprite;
-    
-    public void SetFace(string faceSpriteName)
+    public string Color;
+    public void SayFaceColor()
     {
-        _faceSprite.sprite = AttackPatterns.attackPatterns[faceSpriteName];
+        Debug.Log(Color);
     }
 }

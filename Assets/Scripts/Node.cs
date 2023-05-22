@@ -23,6 +23,4 @@ public class Node : MonoBehaviour
         }
         connectedNodes[connectedNodes.Length - 1] = newNode;
     }
-
-    public Vector3 Position { get { return transform.position; } }
 }

@@ -1,16 +1,19 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using Unity.VisualScripting;
+using System;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.Assertions.Must;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public GameObject Cube;
+
     private IEnumerator _movementCoroutine;
     public float speed = 1;
+    public float StepCount = 1;
     private bool _isMoving = false;
 
+    [SerializeField]
+    private GameObject _dice;
     [SerializeField]
     private Node _currentNode;
     private Node[] _currentConnectedNodes;
@@ -18,76 +21,114 @@ public class PlayerMovement : MonoBehaviour
     private bool _needToUpdateMovementCoroutine = false;
     void Start()
     {
-        _movementCoroutine = MoveToDestination(_currentNode.Position);
+        _movementCoroutine = RotateCube(_currentNode.transform);
         _currentConnectedNodes = _currentNode.GetNodes();
     }
 
     void Update()
     {
-        if (Input.GetAxis("Vertical") < 0)  _isMoving = true;
+        if (Input.GetAxis("Vertical") < 0) _isMoving = true;
 
         if (_isMoving && _isMovementCoroutineStopped) StartCoroutine(_movementCoroutine);
-        if(_needToUpdateMovementCoroutine) UpdateMovementCoroutine();
+        if (_needToUpdateMovementCoroutine) UpdateMovementCoroutine();
+        if (!_isMovementCoroutineStopped) transform.position += (_currentNode.transform.position - transform.position).normalized * Time.deltaTime * speed;
     }
 
+    //Update to use the new dice game object attached to the player object
+    //Movement will translate the ENTIRE player gameobject while using the previously made code to seperately rotate the dice gameobject
+
     //Finishes movement in either a single 90 degree turn or multiple 90 degree turns
-    IEnumerator MoveToDestination(Vector3 destintion, float stepSize = 1f)
+    IEnumerator RotateCube(Transform destintion)
     {
-        Vector3 movementDirection;
-        Vector3 rotationDirection;
-        bool isFinishedMoving = false;
+        
+        GameObject currentTarget = Instantiate(Cube);
+        currentTarget.transform.SetPositionAndRotation(transform.position, transform.rotation);
+        float rotationAmount = 90;
+        Vector3 rotationAxis = new Vector3(0, 0, 0);
         _isMovementCoroutineStopped = false;
 
-        //Multiple 90 degree turns
-        if (stepSize != 0)
+        Vector3 distanceFromNode = destintion.position - transform.position;
+        GameObject rotationPoint = Instantiate(Cube);
+        rotationPoint.transform.parent = transform;
+
+        //Find a way to use step count with this method
+
+        //Make a switch for the 4 different directions
+        if (distanceFromNode.x > 0)
         {
-            movementDirection = (destintion - transform.position).normalized * stepSize;
-            rotationDirection = movementDirection * 90;
+            rotationAmount *= -1;
+            rotationAxis.z = 1;
         }
-        //Single 90 degree turn
-        else
+        else if (distanceFromNode.x < 0) rotationAxis.z = 1;
+
+        if (distanceFromNode.z < 0)
         {
-            movementDirection = destintion - transform.position;
-            rotationDirection = movementDirection.normalized * 90;
+            rotationAmount *= -1;
+            rotationAxis.x = 1;
         }
-        rotationDirection = new Vector3(rotationDirection.z, rotationDirection.y, -rotationDirection.x);
+        else if (distanceFromNode.z < 0) rotationAxis.x = 1;
 
-        while (!isFinishedMoving)
+        rotationPoint.transform.position = (distanceFromNode.normalized + Vector3.down) / 2;
+        currentTarget.transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount);
+        while (_isMoving)
         {
-            transform.Rotate(rotationDirection * Time.deltaTime * speed);
+            //if ((transform.position - currentTargetTransform.transform.position).magnitude < speed * .1f)
+            //{
+            //    currentTargetTransform.transform.position = new Vector3((float)Math.Round(currentTargetTransform.transform.position.x),
+            //                                                            (float)Math.Round(currentTargetTransform.transform.position.y),
+            //                                                            (float)Math.Round(currentTargetTransform.transform.position.z));
+            //    rotationPoint.transform.position = (distanceFromNode.normalized + Vector3.down) + transform.position / 2;
+            //    transform.SetPositionAndRotation(currentTargetTransform.transform.position, currentTargetTransform.transform.rotation);
+            //    currentTargetTransform.transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount);
+            //}
+            transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount * Time.fixedDeltaTime * speed);
+            transform.position -= currentTarget.transform.position.normalized * Time.fixedDeltaTime * speed;
 
-            
-            transform.position += movementDirection * Time.deltaTime * speed;
-            if ((transform.position - destintion).magnitude < speed * .01f)
-                isFinishedMoving = true;
+            //Update Position here
 
-            if (isFinishedMoving)
-            {
-                transform.position = destintion;
-                Quaternion newRotation = new Quaternion(Mathf.Round(transform.rotation.x), Mathf.Round(transform.rotation.y), Mathf.Round(transform.rotation.z), Mathf.Round(transform.rotation.w));
-                transform.rotation = newRotation;
-                break;
-            }
+            //Vector3 movementVector = currentTargetTransform.transform.position - transform.position;
+            //movementVector.Normalize();
+            //if ((transform.position - destintion.position).magnitude < speed * .1f)
+            //{
+            //    transform.rotation = _currentNode.transform.rotation;
+            //    transform.position = _currentNode.transform.position;
+            //    break;
+            //}
+
             yield return null;
         }
 
-        //if (Physics.Raycast(transform.position, Vector3.up, out RaycastHit hit, 1))
-        //{
-        //    FaceBehavior face = hit.collider.gameObject.GetComponent<FaceBehavior>();
-        //}
-        
+        if (Physics.Raycast(transform.position, Vector3.up, out RaycastHit hit, 1))
+        {
+            hit.collider.gameObject.GetComponent<FaceBehavior>().SayFaceColor();
+
+        }
+
+        Destroy(currentTarget);
+        Destroy(rotationPoint);
         _isMovementCoroutineStopped = true;
         _isMoving = false;
         _needToUpdateMovementCoroutine = true;
         StopCoroutine(_movementCoroutine);
     }
 
-    private void UpdateMovementCoroutine()
+    private void UpdateMovementCoroutine(int pathChoice = 0)
     {
         _needToUpdateMovementCoroutine = false;
-        if (_currentConnectedNodes == null) return;
-        _currentNode = _currentConnectedNodes[0];
-        _currentConnectedNodes = _currentNode.GetNodes();
-        _movementCoroutine = MoveToDestination(_currentNode.gameObject.transform.position);
+        if (_currentConnectedNodes.Length == 0) return;
+
+        if (_currentConnectedNodes.Length == 1)
+        {
+            _currentNode = _currentConnectedNodes[0];
+            _isMoving = true;
+        }
+        else _currentNode = _currentConnectedNodes[pathChoice];
+        _currentConnectedNodes = new Node[0];
+
+        if(_currentNode.GetNodes().Length > 0)
+            _currentConnectedNodes = _currentNode.GetNodes();
+
+
+        _movementCoroutine = RotateCube(_currentNode.transform);
     }
 }
