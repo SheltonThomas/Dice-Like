@@ -2,6 +2,7 @@ using System.Collections;
 using System;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
+using Unity.VisualScripting;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -31,44 +32,58 @@ public class PlayerMovement : MonoBehaviour
 
         if (_isMoving && _isMovementCoroutineStopped) StartCoroutine(_movementCoroutine);
         if (_needToUpdateMovementCoroutine) UpdateMovementCoroutine();
-        if (!_isMovementCoroutineStopped) transform.position += (_currentNode.transform.position - transform.position).normalized * Time.deltaTime * speed;
     }
 
     //Update to use the new dice game object attached to the player object
     //Movement will translate the ENTIRE player gameobject while using the previously made code to seperately rotate the dice gameobject
 
+    //After closer inspection the cube is slightly moving from its original position after its rotation
+
     //Finishes movement in either a single 90 degree turn or multiple 90 degree turns
     IEnumerator RotateCube(Transform destintion)
     {
         
-        GameObject currentTarget = Instantiate(Cube);
-        currentTarget.transform.SetPositionAndRotation(transform.position, transform.rotation);
+        GameObject currentTarget = Instantiate(new GameObject());
+        currentTarget.transform.SetPositionAndRotation(_dice.transform.position, _dice.transform.rotation);
         float rotationAmount = 90;
         Vector3 rotationAxis = new Vector3(0, 0, 0);
         _isMovementCoroutineStopped = false;
 
-        Vector3 distanceFromNode = destintion.position - transform.position;
+        //For some reason cube is rotation diagonally when trying to rotate to a target straight on the x axis
+
+        //Player also didnt start in correct position when changing player position before playing game
+        //Maybe just a bug with (current code)*
+
+        //Another thing to note is that this (current code)* almost works without the dice being a child of the player gameobject
+        // but for some reason not having the dice be a part of the game object.
+        //Check the actual postition of the rotation relative to local rotation and check the movement direction, 
+        // even though that shouldnt effect the code
+        //* = Current code refers to anything that is actual logic, varible that are used can be replaced
+
+        //Maybe just try to find a solution that would work with animation
+        GameObject distanceFromNode = Instantiate(Cube);
+        distanceFromNode.transform.position = destintion.position - _dice.transform.position;
         GameObject rotationPoint = Instantiate(Cube);
         rotationPoint.transform.parent = transform;
 
         //Find a way to use step count with this method
 
         //Make a switch for the 4 different directions
-        if (distanceFromNode.x > 0)
+        if (distanceFromNode.transform.position.x > 0)
         {
             rotationAmount *= -1;
             rotationAxis.z = 1;
         }
-        else if (distanceFromNode.x < 0) rotationAxis.z = 1;
+        else if (distanceFromNode.transform.position.x < 0) rotationAxis.z = 1;
 
-        if (distanceFromNode.z < 0)
+        if (distanceFromNode.transform.position.z < 0)
         {
             rotationAmount *= -1;
             rotationAxis.x = 1;
         }
-        else if (distanceFromNode.z < 0) rotationAxis.x = 1;
+        else if (distanceFromNode.transform.position.z < 0) rotationAxis.x = 1;
 
-        rotationPoint.transform.position = (distanceFromNode.normalized + Vector3.down) / 2;
+        rotationPoint.transform.position = (distanceFromNode.transform.position.normalized + Vector3.down) / 2;
         currentTarget.transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount);
         while (_isMoving)
         {
@@ -81,8 +96,8 @@ public class PlayerMovement : MonoBehaviour
             //    transform.SetPositionAndRotation(currentTargetTransform.transform.position, currentTargetTransform.transform.rotation);
             //    currentTargetTransform.transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount);
             //}
-            transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount * Time.fixedDeltaTime * speed);
-            transform.position -= currentTarget.transform.position.normalized * Time.fixedDeltaTime * speed;
+            _dice.transform.RotateAround(rotationPoint.transform.position, rotationAxis, rotationAmount * Time.fixedDeltaTime * speed);
+            _dice.transform.position = new Vector3(0, _dice.transform.position.y, 0);
 
             //Update Position here
 
