@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
@@ -34,8 +34,21 @@ public class PlayerMovement : MonoBehaviour
         if (_needToUpdateMovementCoroutine) UpdateMovementCoroutine();
     }
 
-    //Update to use the new dice game object attached to the player object
-    //Movement will translate the ENTIRE player gameobject while using the previously made code to seperately rotate the dice gameobject
+    /*
+            !!FIXES FOR MOVEMENT!!
+
+     1) Honestly don't know whats happening
+        - I *THOUGHT* I had fixed an issue with the prefab
+        - I had reset the position of the Die object of the player prefab and now none of this code works...
+        - I LOVE YOU FUTURE ME, WE IN THIS TOGTHER ♥...
+
+     2) Update to use the new dice game object attached to the player object
+        - Movement will translate the ENTIRE player gameobject while using the previously made code to seperately rotate the dice gameobject
+
+     3) Freeze position of the cube depending on direction of rotation
+        - EX: Cube rotation forward along the x axis will have it x position locked during rotation then unlocked to move the cube the correct distance per frame
+
+     */
 
     //After closer inspection the cube is slightly moving from its original position after its rotation
 
